@@ -2,18 +2,18 @@
 
 namespace App\Mail;
 
+use App\Models\Order;
 use Illuminate\Bus\Queueable;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
-use App\Models\Order;
 
 class OrderReceiptMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    public Order $order;
+    public $order;
 
     public function __construct(Order $order)
     {
@@ -23,7 +23,7 @@ class OrderReceiptMail extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Your Order has been Confirmed! 🛒 # ' . $this->order->order_no,
+            subject: 'Order Receipt - ' . $this->order->order_no,
         );
     }
 
@@ -32,5 +32,10 @@ class OrderReceiptMail extends Mailable
         return new Content(
             view: 'emails.receipt',
         );
+    }
+
+    public function attachments(): array
+    {
+        return [];
     }
 }
