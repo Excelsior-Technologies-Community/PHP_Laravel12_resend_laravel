@@ -9,3 +9,4 @@ Route::post('/send-batch', [OrderController::class, 'sendBatchReceipts'])->name(
 Route::get('/email-history', [OrderController::class, 'emailHistory'])->name('orders.emailHistory');
 Route::get('/email-report', [OrderController::class, 'emailReport'])->name('orders.emailReport');
 Route::get('/resend-failed/{id}', [OrderController::class, 'resendFailedEmail'])->name('orders.resendFailed');
+Route::get('/export', [OrderController::class, 'export'])->name('orders.export');
