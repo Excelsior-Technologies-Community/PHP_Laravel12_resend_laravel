@@ -1893,5 +1893,5 @@ If this project helped you, please give it a ⭐ on GitHub!
 
 **Made with ❤️ using Laravel & Resend API**
 
-<img width="1903" height="902" alt="Screenshot 2026-05-18 132836" src="https://github.com/user-attachments/assets/a105b294-cd21-4dfe-9a92-24126f214ac8" />
-<img width="1551" height="644" alt="Screenshot 2026-05-18 132825" src="https://github.com/user-attachments/assets/37408b75-b87b-4a99-914b-60cb96de4039" />
+<img width="1903" height="902" alt="Screenshot 2026-05-18 132836" src="https://github.com/user-attachments/assets/65551bf9-d316-4103-a7d5-103f0055ec87" />
+<img width="1551" height="644" alt="Screenshot 2026-05-18 132825" src="https://github.com/user-attachments/assets/8c573b8d-dd97-4819-a457-37ada3814ab7" />

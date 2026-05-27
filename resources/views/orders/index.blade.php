@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>E-Commerce Order Dashboard</title>
+    <title>Order Dashboard</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 
@@ -14,6 +14,25 @@
     <style>
         body {
             background: #f4f6f9;
+            transition: 0.3s;
+        }
+
+        .dark-mode {
+            background: #121212 !important;
+            color: white !important;
+        }
+
+        .dark-mode .card {
+            background: #1e1e1e;
+            color: white;
+        }
+
+        .dark-mode .table {
+            color: white;
+        }
+
+        .dark-mode .table-dark {
+            background: #000;
         }
 
         .card {
@@ -34,7 +53,6 @@
             vertical-align: middle;
         }
     </style>
-
 </head>
 
 <body>
@@ -46,20 +64,20 @@
         <div class="d-flex justify-content-between align-items-center mb-4">
 
             <h2 class="fw-bold">
-
                 <i class="fas fa-shopping-cart me-2"></i>
-
                 Order Management Dashboard
-
             </h2>
 
             <div>
+
+                <button onclick="toggleDarkMode()" class="btn btn-dark me-2">
+                    🌙 Dark Mode
+                </button>
 
                 <a href="{{ route('orders.emailHistory') }}"
                     class="btn btn-outline-dark me-2">
 
                     <i class="fas fa-history"></i>
-
                     Email History
 
                 </a>
@@ -68,7 +86,6 @@
                     class="btn btn-outline-info">
 
                     <i class="fas fa-chart-line"></i>
-
                     Reports
 
                 </a>
@@ -77,90 +94,49 @@
 
         </div>
 
-
-        <!-- Statistics Cards -->
+        <!-- Statistics -->
 
         <div class="row mb-4">
 
-            <div class="col-md-3">
-
+            <div class="col-md-3 mb-3">
                 <div class="card stats-card bg-success text-white shadow-sm rounded-4">
-
                     <div class="card-body">
-
                         <h6>Total Sent</h6>
-
                         <h2>{{ $statistics['total_sent'] }}</h2>
-
-                        <small>Email delivered successfully</small>
-
                     </div>
-
                 </div>
-
             </div>
 
-
-            <div class="col-md-3">
-
+            <div class="col-md-3 mb-3">
                 <div class="card stats-card bg-danger text-white shadow-sm rounded-4">
-
                     <div class="card-body">
-
                         <h6>Failed</h6>
-
                         <h2>{{ $statistics['total_failed'] }}</h2>
-
-                        <small>Email delivery failures</small>
-
                     </div>
-
                 </div>
-
             </div>
 
-
-            <div class="col-md-3">
-
+            <div class="col-md-3 mb-3">
                 <div class="card stats-card bg-primary text-white shadow-sm rounded-4">
-
                     <div class="card-body">
-
                         <h6>Today Sent</h6>
-
                         <h2>{{ $statistics['today_sent'] }}</h2>
-
-                        <small>Today's activity</small>
-
                     </div>
-
                 </div>
-
             </div>
 
-
-            <div class="col-md-3">
-
+            <div class="col-md-3 mb-3">
                 <div class="card stats-card bg-dark text-white shadow-sm rounded-4">
-
                     <div class="card-body">
-
                         <h6>Unique Orders</h6>
-
                         <h2>{{ $statistics['unique_orders'] }}</h2>
-
-                        <small>Total tracked orders</small>
-
                     </div>
-
                 </div>
-
             </div>
 
         </div>
 
-
-        <!-- Search + Export -->
+        <!-- Search -->
 
         <div class="card shadow-sm rounded-4 mb-4">
 
@@ -181,9 +157,7 @@
                                     placeholder="Search order/customer/product">
 
                                 <button class="btn btn-dark">
-
                                     <i class="fas fa-search"></i>
-
                                 </button>
 
                                 <a href="{{ url()->current() }}"
@@ -205,7 +179,6 @@
                             class="btn btn-success">
 
                             <i class="fas fa-download"></i>
-
                             Export CSV
 
                         </a>
@@ -218,60 +191,11 @@
 
         </div>
 
-
-
-        <!-- Batch Form -->
-
-        <div class="card shadow-sm rounded-4 mb-4">
-
-            <div class="card-header bg-dark text-white">
-
-                <h5 class="mb-0">
-
-                    <i class="fas fa-paper-plane me-2"></i>
-
-                    Batch Email Sending
-
-                </h5>
-
-            </div>
-
-            <div class="card-body">
-
-                <form action="{{ route('orders.sendBatch') }}"
-                    method="POST"
-                    id="batchForm">
-
-                    @csrf
-
-                    <div class="alert alert-info">
-
-                        Select multiple orders to send receipts in batch.
-
-                    </div>
-
-                    <button type="submit"
-                        class="btn btn-dark"
-                        onclick="return confirmBatch()">
-
-                        Send Selected Receipts
-
-                    </button>
-
-                </form>
-
-            </div>
-
-        </div>
-
-
-
-        <!-- Success Alert -->
+        <!-- Alerts -->
 
         @if(session('success'))
 
         <div class="alert alert-success alert-dismissible fade show">
-
             {{ session('success') }}
 
             <button type="button"
@@ -282,7 +206,6 @@
         </div>
 
         @endif
-
 
 
         @if(session('error'))
@@ -300,253 +223,198 @@
 
         @endif
 
+        <!-- Batch Form -->
 
+        <form action="{{ route('orders.sendBatch') }}"
+            method="POST"
+            id="batchForm">
 
-        @if(session('batch_results'))
+            @csrf
 
-        <div class="alert alert-warning alert-dismissible fade show">
+            <div class="card shadow-sm rounded-4 mb-4">
 
-            <strong>
+                <div class="card-header bg-dark text-white">
 
-                {{ session('batch_results.message') }}
-
-            </strong>
-
-            <button type="button"
-                class="btn-close"
-                data-bs-dismiss="alert">
-            </button>
-
-            <div class="small mt-2">
-
-                @foreach(session('batch_results.details') as $detail)
-
-                <div>
-
-                    {{ $detail }}
+                    <h5 class="mb-0">
+                        Batch Email Sending
+                    </h5>
 
                 </div>
 
-                @endforeach
+                <div class="card-body">
+
+                    <button type="submit"
+                        class="btn btn-dark"
+                        onclick="return confirmBatch()">
+
+                        Send Selected Receipts
+
+                    </button>
+
+                </div>
 
             </div>
 
-        </div>
+            <!-- Orders Table -->
 
-        @endif
+            <div class="card shadow-sm rounded-4">
 
+                <div class="card-body p-0">
 
+                    <div class="table-responsive">
 
+                        <table class="table table-hover table-striped mb-0">
 
-        <!-- Orders Table -->
+                            <thead class="table-dark">
 
-        <div class="card shadow-sm rounded-4">
+                                <tr>
 
-            <div class="card-body p-0">
+                                    <th width="50">
 
-                <table class="table table-hover table-striped mb-0">
+                                        <input type="checkbox"
+                                            id="selectAll"
+                                            class="form-check-input">
 
-                    <thead class="table-dark">
+                                    </th>
 
-                        <tr>
+                                    <th>Order No</th>
+                                    <th>Customer</th>
+                                    <th>Product</th>
+                                    <th>Price</th>
+                                    <th>Status</th>
+                                    <th class="text-end">Action</th>
 
-                            <th width="50">
+                                </tr>
 
-                                <input type="checkbox"
-                                    id="selectAll"
-                                    class="form-check-input">
+                            </thead>
 
-                            </th>
+                            <tbody>
 
-                            <th>Order No</th>
-                            <th>Customer</th>
-                            <th>Product</th>
-                            <th>Price</th>
-                            <th>Status</th>
-                            <th class="text-end">Action</th>
+                                @forelse($orders as $order)
 
-                        </tr>
+                                <tr>
 
-                    </thead>
+                                    <td>
 
-                    <tbody>
+                                        <input type="checkbox"
+                                            name="order_ids[]"
+                                            value="{{ $order->id }}"
+                                            class="order-checkbox form-check-input">
 
-                        @forelse($orders as $order)
+                                    </td>
 
-                        <tr>
+                                    <td>
+                                        <strong>{{ $order->order_no }}</strong>
+                                    </td>
 
-                            <td>
+                                    <td>
 
-                                <input type="checkbox"
-                                    form="batchForm"
-                                    name="order_ids[]"
-                                    value="{{ $order->id }}"
-                                    class="order-checkbox form-check-input">
+                                        <div>
+                                            {{ $order->customer_name }}
+                                        </div>
 
-                            </td>
+                                        <small class="text-muted">
+                                            {{ $order->customer_email }}
+                                        </small>
 
+                                    </td>
 
-                            <td>
+                                    <td>
 
-                                <strong>
+                                        <span class="badge bg-info text-dark">
+                                            {{ $order->product_name }}
+                                        </span>
 
-                                    {{ $order->order_no }}
+                                    </td>
 
-                                </strong>
+                                    <td class="fw-bold text-success">
 
-                            </td>
+                                        ₹{{ number_format($order->price,2) }}
 
-                            <td>
+                                    </td>
 
-                                <div>
+                                    <td>
 
-                                    {{ $order->customer_name }}
+                                        @if($order->lastEmailLog)
 
-                                </div>
+                                            @if($order->lastEmailLog->status=="sent")
 
-                                <small class="text-muted">
+                                                <span class="badge bg-success">
+                                                    Sent
+                                                </span>
 
-                                    {{ $order->customer_email }}
+                                            @else
 
-                                </small>
+                                                <span class="badge bg-danger">
+                                                    Failed
+                                                </span>
 
-                            </td>
+                                            @endif
 
+                                        @else
 
-                            <td>
+                                            <span class="badge bg-secondary">
+                                                Not Sent
+                                            </span>
 
-                                <span class="badge bg-info text-dark">
+                                        @endif
 
-                                    {{ $order->product_name }}
+                                    </td>
 
-                                </span>
+                                    <td class="text-end">
 
-                            </td>
+                                        <a href="{{ route('orders.sendReceipt',$order->id) }}"
+                                            class="btn btn-dark btn-sm">
 
+                                            Send
 
-                            <td class="fw-bold text-success">
+                                        </a>
 
-                                ₹{{ number_format($order->price,2) }}
+                                    </td>
 
-                            </td>
+                                </tr>
 
+                                @empty
 
-                            <td>
+                                <tr>
 
-                                @if($order->lastEmailLog)
+                                    <td colspan="7"
+                                        class="text-center py-5">
 
-                                @if($order->lastEmailLog->status=="sent")
+                                        No orders found.
 
-                                <span class="badge bg-success">
+                                    </td>
 
-                                    Sent
+                                </tr>
 
-                                </span>
+                                @endforelse
 
-                                @else
+                            </tbody>
 
-                                <span class="badge bg-danger">
+                        </table>
 
-                                    Failed
+                    </div>
 
-                                </span>
-
-                                @endif
-
-                                @else
-
-                                <span class="badge bg-secondary">
-
-                                    Not Sent
-
-                                </span>
-
-                                @endif
-
-                            </td>
-
-
-                            <td class="text-end">
-
-                                <a href="{{ route('orders.sendReceipt',$order->id) }}"
-                                    class="btn btn-dark btn-sm">
-
-                                    Send
-
-                                </a>
-
-                            </td>
-
-                        </tr>
-
-                        @empty
-
-                        <tr>
-
-                            <td colspan="7"
-                                class="text-center py-5">
-
-                                No orders found.
-
-                            </td>
-
-                        </tr>
-
-                        @endforelse
-
-                    </tbody>
-
-                </table>
+                </div>
 
             </div>
 
-        </div>
-
-
+        </form>
 
         <!-- Pagination -->
-        <div class="card border-0 shadow-sm mt-4">
-            <div class="card-body py-3">
 
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-center">
+        <div class="mt-4">
 
-                    <div class="text-muted small mb-3 mb-md-0">
-                        Showing
-                        <span class="fw-bold text-dark">
-                            {{ $orders->firstItem() }}
-                        </span>
+            {{ $orders->withQueryString()->links('pagination::bootstrap-5') }}
 
-                        to
-
-                        <span class="fw-bold text-dark">
-                            {{ $orders->lastItem() }}
-                        </span>
-
-                        of
-
-                        <span class="fw-bold text-primary">
-                            {{ $orders->total() }}
-                        </span>
-
-                        entries
-                    </div>
-
-                    <div>
-                        {{ $orders->onEachSide(1)->withQueryString()->links('pagination::bootstrap-5') }}
-                    </div>
-
-                </div>
-
-            </div>
         </div>
 
-
     </div>
-
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
+
         document.getElementById('selectAll')
             ?.addEventListener('change', function() {
 
@@ -559,19 +427,14 @@
 
             });
 
-
         function confirmBatch() {
 
             let selected =
-                document.querySelectorAll(
-                    '.order-checkbox:checked'
-                );
+                document.querySelectorAll('.order-checkbox:checked');
 
             if (selected.length === 0) {
 
-                alert(
-                    'Please select at least one order'
-                );
+                alert('Please select at least one order');
 
                 return false;
             }
@@ -579,8 +442,26 @@
             return confirm(
                 `Send receipts to ${selected.length} selected orders?`
             );
-
         }
+
+        function toggleDarkMode() {
+
+            document.body.classList.toggle('dark-mode');
+
+            localStorage.setItem(
+                'darkMode',
+                document.body.classList.contains('dark-mode')
+            );
+        }
+
+        window.onload = function() {
+
+            if(localStorage.getItem('darkMode') === 'true') {
+
+                document.body.classList.add('dark-mode');
+            }
+        }
+
     </script>
 
 </body>

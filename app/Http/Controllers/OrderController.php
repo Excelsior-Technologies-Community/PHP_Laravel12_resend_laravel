@@ -5,60 +5,76 @@ namespace App\Http\Controllers;
 use App\Models\Order;
 use App\Models\EmailLog;
 use App\Mail\OrderReceiptMail;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class OrderController extends Controller
 {
+  public function index(Request $request)
+{
+    $orders = Order::with('lastEmailLog')
+        ->when($request->search, function ($query) use ($request) {
 
-    public function index(Request $request)
-    {
-        $orders = Order::with('lastEmailLog')
-            ->when($request->search, function ($query) use ($request) {
-                $query->where('order_no', 'like', '%' . $request->search . '%')
-                    ->orWhere('customer_name', 'like', '%' . $request->search . '%')
-                    ->orWhere('customer_email', 'like', '%' . $request->search . '%')
-                    ->orWhere('product_name', 'like', '%' . $request->search . '%');
-            })
-            ->latest()
-            ->paginate(10);
+            $query->where('order_no', 'like', '%' . $request->search . '%')
+                ->orWhere('customer_name', 'like', '%' . $request->search . '%')
+                ->orWhere('customer_email', 'like', '%' . $request->search . '%')
+                ->orWhere('product_name', 'like', '%' . $request->search . '%');
+        })
+        ->oldest()
+        ->paginate(3);
 
-        $statistics = $this->getEmailStatistics();
+    // Statistics
+    $statistics = [
+        'total_sent' => \App\Models\EmailLog::where('status', 'sent')->count(),
 
-        return view('orders.index', compact('orders', 'statistics'));
-    }
+        'total_failed' => \App\Models\EmailLog::where('status', 'failed')->count(),
 
+        'today_sent' => \App\Models\EmailLog::whereDate('created_at', today())
+                            ->where('status', 'sent')
+                            ->count(),
+
+        'unique_orders' => \App\Models\Order::count(),
+    ];
+
+    return view('orders.index', compact('orders', 'statistics'));
+}
 
     public function sendReceipt($id)
     {
         try {
+
             $order = Order::findOrFail($id);
 
-            // Send email via Resend
-            Mail::to(env('MAIL_TEST_EMAIL'))->send(new OrderReceiptMail($order));
+            Mail::to(env('MAIL_TEST_EMAIL'))
+                ->queue(new OrderReceiptMail($order));
 
-            // Log successful email
             EmailLog::create([
                 'order_id' => $order->id,
-                'recipient_email' => $order->customer_email,
+                'recipient_email' => env('MAIL_TEST_EMAIL'),
                 'status' => 'sent',
                 'sent_at' => now()
             ]);
 
-            return redirect()->back()->with('success', "✓ Receipt for {$order->order_no} sent successfully to {$order->customer_email}!");
+            return redirect()->back()->with(
+                'success',
+                "✓ Receipt queued successfully for {$order->order_no}"
+            );
+
         } catch (\Exception $e) {
-            // Log failed email
+
             EmailLog::create([
-                'order_id' => $order->id,
-                'recipient_email' => $order->customer_email,
+                'order_id' => $id,
+                'recipient_email' => env('MAIL_TEST_EMAIL'),
                 'status' => 'failed',
                 'error_message' => $e->getMessage()
             ]);
 
-            return redirect()->back()->with('error', "✗ Failed to send receipt for {$order->order_no}: " . $e->getMessage());
+            return redirect()->back()->with(
+                'error',
+                "✗ Failed: " . $e->getMessage()
+            );
         }
     }
 
@@ -70,70 +86,58 @@ class OrderController extends Controller
         ]);
 
         $sentCount = 0;
-        $failedCount = 0;
-        $results = [];
 
         foreach ($request->order_ids as $orderId) {
-            try {
-                $order = Order::find($orderId);
 
-                Mail::to(env('MAIL_TEST_EMAIL'))->send(new OrderReceiptMail($order));
+            $order = Order::find($orderId);
 
-                EmailLog::create([
-                    'order_id' => $order->id,
-                    'recipient_email' => $order->customer_email,
-                    'status' => 'sent',
-                    'sent_at' => now()
-                ]);
+            Mail::to(env('MAIL_TEST_EMAIL'))
+                ->queue(new OrderReceiptMail($order));
 
-                $sentCount++;
-                $results[] = "✓ {$order->order_no} sent to {$order->customer_email}";
-            } catch (\Exception $e) {
-                EmailLog::create([
-                    'order_id' => $order->id,
-                    'recipient_email' => $order->customer_email,
-                    'status' => 'failed',
-                    'error_message' => $e->getMessage()
-                ]);
+            EmailLog::create([
+                'order_id' => $order->id,
+                'recipient_email' => env('MAIL_TEST_EMAIL'),
+                'status' => 'sent',
+                'sent_at' => now()
+            ]);
 
-                $failedCount++;
-                $results[] = "✗ {$order->order_no} failed: " . $e->getMessage();
-                $failedOrders[] = $order->order_no;
-            }
+            $sentCount++;
         }
 
-        $message = "Batch sending completed! Sent: {$sentCount}, Failed: {$failedCount}";
-
-        return redirect()->back()->with('batch_results', [
-            'message' => $message,
-            'details' => $results,
-            'sent_count' => $sentCount,
-            'failed_count' => $failedCount
-        ]);
+        return redirect()->back()->with(
+            'success',
+            "{$sentCount} emails queued successfully!"
+        );
     }
 
     public function resendFailedEmail($id)
     {
         try {
+
             $emailLog = EmailLog::findOrFail($id);
+
             $order = $emailLog->order;
 
-            Mail::to(env('MAIL_TEST_EMAIL'))->send(new OrderReceiptMail($order));
+            Mail::to(env('MAIL_TEST_EMAIL'))
+                ->queue(new OrderReceiptMail($order));
 
-            // Update the existing log
             $emailLog->update([
                 'status' => 'sent',
                 'error_message' => null,
                 'sent_at' => now()
             ]);
 
-            return redirect()->back()->with('success', "✓ Successfully resent receipt to {$order->customer_email}");
-        } catch (\Exception $e) {
-            $emailLog->update([
-                'error_message' => $e->getMessage()
-            ]);
+            return redirect()->back()->with(
+                'success',
+                "✓ Email resent successfully!"
+            );
 
-            return redirect()->back()->with('error', "✗ Failed to resend: " . $e->getMessage());
+        } catch (\Exception $e) {
+
+            return redirect()->back()->with(
+                'error',
+                "✗ Failed: " . $e->getMessage()
+            );
         }
     }
 
@@ -155,12 +159,10 @@ class OrderController extends Controller
             foreach ($logs as $log) {
 
                 fputcsv($handle, [
-
-                    $log->order->order_no,
+                    $log->order->order_no ?? 'N/A',
                     $log->recipient_email,
                     $log->status,
                     $log->created_at
-
                 ]);
             }
 
@@ -180,27 +182,21 @@ class OrderController extends Controller
         return $response;
     }
 
-    public function emailHistory()
+    public function emailHistory(Request $request)
     {
         $emailLogs = EmailLog::with('order')
+            ->when($request->status, function ($query) use ($request) {
+                $query->where('status', $request->status);
+            })
             ->latest()
             ->paginate(20);
 
         $statistics = $this->getEmailStatistics();
 
-        return view('orders.email-history', compact('emailLogs', 'statistics'));
-    }
-
-    private function getEmailStatistics()
-    {
-        return [
-            'total_sent' => EmailLog::where('status', 'sent')->count(),
-            'total_failed' => EmailLog::where('status', 'failed')->count(),
-            'today_sent' => EmailLog::where('status', 'sent')
-                ->whereDate('sent_at', today())
-                ->count(),
-            'unique_orders' => EmailLog::distinct('order_id')->count('order_id')
-        ];
+        return view('orders.email-history', compact(
+            'emailLogs',
+            'statistics'
+        ));
     }
 
     public function emailReport()
@@ -224,6 +220,19 @@ class OrderController extends Controller
             ->limit(10)
             ->get();
 
-        return view('orders.email-report', compact('statistics', 'dailyStats', 'failedEmails'));
+        return view('orders.email-report', compact(
+            'statistics',
+            'dailyStats',
+            'failedEmails'
+        ));
+    }
+
+    private function getEmailStatistics()
+    {
+        return [
+            'total' => EmailLog::count(),
+            'sent' => EmailLog::where('status', 'sent')->count(),
+            'failed' => EmailLog::where('status', 'failed')->count(),
+        ];
     }
 }
